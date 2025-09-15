@@ -20,6 +20,8 @@ export default function App() {
   const fileInputRef = useRef(null)
   const [files, setFiles] = useState([]) // File[]
 
+  return ( <div>Hello World!</div> )
+  /*
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
@@ -89,7 +91,7 @@ export default function App() {
         </main>
 
         <div className="composer-wrap">
-          {/* IMPORTANT: encType so files go as multipart/form-data */}
+          {/* IMPORTANT: encType so files go as multipart/form-data *}
           <form
             className="composer"
             encType="multipart/form-data"
@@ -117,7 +119,7 @@ export default function App() {
             />
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {/* Hidden native file input */}
+              {/* Hidden native file input *}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -158,7 +160,7 @@ export default function App() {
               )}
             </div>
 
-            {/* File list preview */}
+            {/* File list preview *}
             {files.length > 0 && (
               <div className="filelist">
                 {files.map((f, i) => (
@@ -179,4 +181,5 @@ export default function App() {
       </div>
     </div>
   )
+  */
 }
