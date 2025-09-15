@@ -128,7 +128,6 @@ export default function App() {
                 // Tweak as needed:
                 accept=".pdf,.txt,.md,.doc,.docx,.csv,.json,.png,.jpg,.jpeg,.gif"
               />
-            {/*
 
               <button
                 type="button"
@@ -142,6 +141,7 @@ export default function App() {
               <button className="button" type="submit" disabled={isLoading || (!input.trim() && files.length === 0)}>
                 {isLoading ? 'Sending…' : 'Send'}
               </button>
+              {/*
 
               {isLoading ? (
                 <button type="button" className="button" onClick={stop}>
