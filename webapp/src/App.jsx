@@ -58,7 +58,7 @@ export default function App() {
       <div className="container">
 
         <header className="header">
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>AIS - Annonymous Immigration Support</h1>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>AIS - Anonymous Immigration Support</h1>
           <div className="meta" style={{ marginTop: 4 }}>
             Endpoint: <code>{api}</code>
           </div>
@@ -66,7 +66,8 @@ export default function App() {
         <main className="messages" ref={listRef}>
           {messages.length === 0 && (
             <div className="bubble" style={{ margin: '12px auto' }}>
-              👋 Type a message below and optionally attach files.
+              👋 Type your question below and optionally attach files.
+              Everything will be anonymized before using any cloud service.
             </div>
           )}
 
@@ -86,10 +87,9 @@ export default function App() {
             </div>
           )}
         </main>
-        {/*
 
         <div className="composer-wrap">
-          {/* IMPORTANT: encType so files go as multipart/form-data *}
+          {/* IMPORTANT: encType so files go as multipart/form-data */}
           <form
             className="composer"
             encType="multipart/form-data"
@@ -115,6 +115,7 @@ export default function App() {
               }}
               name="message"
             />
+            {/*
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {/* Hidden native file input *}
@@ -173,9 +174,9 @@ export default function App() {
                 </div>
               </div>
             )}
+            */}
           </form>
         </div>
-        */}
       </div>
     </div>
   )
