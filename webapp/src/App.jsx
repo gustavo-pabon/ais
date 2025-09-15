@@ -115,10 +115,9 @@ export default function App() {
               }}
               name="message"
             />
-            {/*
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {/* Hidden native file input *}
+              {/* Hidden native file input */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -129,6 +128,7 @@ export default function App() {
                 // Tweak as needed:
                 accept=".pdf,.txt,.md,.doc,.docx,.csv,.json,.png,.jpg,.jpeg,.gif"
               />
+            {/*
 
               <button
                 type="button"
@@ -157,8 +157,10 @@ export default function App() {
                   Clear
                 </button>
               )}
+              */}
             </div>
 
+            {/* 
             {/* File list preview *}
             {files.length > 0 && (
               <div className="filelist">
