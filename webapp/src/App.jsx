@@ -141,7 +141,6 @@ export default function App() {
               <button className="button" type="submit" disabled={isLoading || (input != null && !input.trim() && files.length === 0)}>
                 {isLoading ? 'Sending…' : 'Send'}
               </button>
-              {/*
 
               {isLoading ? (
                 <button type="button" className="button" onClick={stop}>
@@ -157,11 +156,9 @@ export default function App() {
                   Clear
                 </button>
               )}
-              */}
             </div>
 
-            {/* 
-            {/* File list preview *}
+            {/* File list preview */}
             {files.length > 0 && (
               <div className="filelist">
                 {files.map((f, i) => (
@@ -176,7 +173,6 @@ export default function App() {
                 </div>
               </div>
             )}
-            */}
           </form>
         </div>
       </div>
