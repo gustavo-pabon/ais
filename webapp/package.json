@@ -1,0 +1,13 @@
+{
+  "name": "ais-webapp",
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "vite": "latest",
+    "tailwindcss": "latest",
+    "@tailwindcss/vite": "latest"
+  },
+  "scripts": {
+    "build": "vite build"
+  }
+}
