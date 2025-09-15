@@ -5,8 +5,7 @@
   "dependencies": {
     "vite": ">=5.4.20",
     "@vitejs/plugin-react": ">=4.7.0",
-    "react": ">=18.3.1",
-    
+    "react": ">=18.3.1"
   },
   "engines": {
     "node": ">=18.20.0"
