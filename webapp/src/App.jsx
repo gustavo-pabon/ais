@@ -138,7 +138,7 @@ export default function App() {
                 Attach
               </button>
 
-              <button className="button" type="submit" disabled={isLoading || (!input.trim() && files.length === 0)}>
+              <button className="button" type="submit" disabled={isLoading || (input != null && !input.trim() && files.length === 0)}>
                 {isLoading ? 'Sending…' : 'Send'}
               </button>
               {/*
