@@ -5,7 +5,12 @@
   "dependencies": {
     "vite": "*",
     "tailwindcss": "*",
-    "@tailwindcss/vite": "*"
+    "@tailwindcss/vite": "*",
+    "ai": "*",
+    "@ai-sdk/react": "*",
+    "react": "*",
+    "react-dom": "*",
+    "@vitejs/plugin-react": "*"
   },
   "scripts": {
     "build": "vite build"
