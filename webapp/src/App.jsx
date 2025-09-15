@@ -20,8 +20,6 @@ export default function App() {
   const fileInputRef = useRef(null)
   const [files, setFiles] = useState([]) // File[]
 
-  return ( <div>Hello World!</div> )
-  /*
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
@@ -55,6 +53,8 @@ export default function App() {
     return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`
   }
 
+  return ( <div>Hello World!</div> )
+  /*
   return (
     <div className="app">
       <div className="container">
