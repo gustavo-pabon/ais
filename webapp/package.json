@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "type": "module",
   "dependencies": {
-    "vite": "<=latest",
-    "tailwindcss": "<=latest",
-    "@tailwindcss/vite": "<=latest"
+    "vite": "*",
+    "tailwindcss": "*",
+    "@tailwindcss/vite": "*"
   },
   "scripts": {
     "build": "vite build"
