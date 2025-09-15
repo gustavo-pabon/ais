@@ -53,19 +53,17 @@ export default function App() {
     return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`
   }
 
-  return ( <div>Hello World!</div> )
-  /*
   return (
     <div className="app">
       <div className="container">
 
         <header className="header">
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>AI Chat</h1>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>AIS - Annonymous Immigration Support</h1>
           <div className="meta" style={{ marginTop: 4 }}>
             Endpoint: <code>{api}</code>
           </div>
         </header>
-
+        {/*
         <main className="messages" ref={listRef}>
           {messages.length === 0 && (
             <div className="bubble" style={{ margin: '12px auto' }}>
@@ -177,9 +175,8 @@ export default function App() {
             )}
           </form>
         </div>
-
+        */}
       </div>
     </div>
   )
-  */
 }
