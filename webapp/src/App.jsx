@@ -63,7 +63,6 @@ export default function App() {
             Endpoint: <code>{api}</code>
           </div>
         </header>
-        {/*
         <main className="messages" ref={listRef}>
           {messages.length === 0 && (
             <div className="bubble" style={{ margin: '12px auto' }}>
@@ -87,6 +86,7 @@ export default function App() {
             </div>
           )}
         </main>
+        {/*
 
         <div className="composer-wrap">
           {/* IMPORTANT: encType so files go as multipart/form-data *}
