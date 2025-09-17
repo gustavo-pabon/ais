@@ -24,10 +24,8 @@ export default function App() {
 
   const listRef = useRef(null)
   const fileInputRef = useRef(null)
-  const [files, setFiles] = useState([]) // File[]
   const [maskedContext, setMaskedContext] = useState('') // user-editable masked text
   const [uiError, setUiError] = useState('')
-  const [instructions, setInstructions] = useState('') // extra LLM instructions
 
   const llmProvider = import.meta.env.VITE_LLM_PROVIDER || ''
   const llmModel = import.meta.env.VITE_LLM_MODEL || ''
@@ -79,7 +77,6 @@ export default function App() {
       if (!acc.some((g) => key(g) === key(f))) acc.push(f)
       return acc
     }, [])
-    setFiles(merged)
 
     if (picked.length > 0) {
       try {
@@ -102,15 +99,6 @@ export default function App() {
     }
 
     // Clear the native input so selecting same file again re-triggers
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
-
-  function removeFile(i) {
-    setFiles((prev) => prev.filter((_, idx) => idx !== i))
-  }
-
-  function clearFiles() {
-    setFiles([])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -197,11 +185,11 @@ export default function App() {
                 onClick={() => fileInputRef.current?.click()}
                 title="Attach PDF files"
               >
-                Attach PDF
+                Add PDF to the context
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8, width: '100%' }}>
               {isLoading ? (
               <button type="button" className="button" onClick={stop}>
                 Stop
@@ -221,22 +209,6 @@ export default function App() {
 
             {uiError && (
               <div style={{ color: 'crimson', fontSize: 12, marginTop: 6 }}>{uiError}</div>
-            )}
-
-            {/* File list preview */}
-            {files.length > 0 && (
-              <div className="filelist">
-                {files.map((f, i) => (
-                  <div key={`${f.name}-${i}`} className="fileitem">
-                    <span className="filename" title={f.name}>{f.name}</span>
-                    <span className="filesize">{formatBytes(f.size)}</span>
-                    <button type="button" className="filebtn" onClick={() => removeFile(i)}>✕</button>
-                  </div>
-                ))}
-                <div className="fileactions">
-                  <button type="button" className="fileclear" onClick={clearFiles}>Clear files</button>
-                </div>
-              </div>
             )}
 
             {/* Masked context (editable) */}
