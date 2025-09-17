@@ -26,6 +26,9 @@ export default function App() {
   const fileInputRef = useRef(null)
   const [maskedContext, setMaskedContext] = useState('') // user-editable masked text
   const [uiError, setUiError] = useState('')
+  const [isExtracting, setIsExtracting] = useState(false)
+  const [extractStatus, setExtractStatus] = useState('')
+  const [instructions, setInstructions] = useState('') // extra LLM instructions
 
   const llmProvider = import.meta.env.VITE_LLM_PROVIDER || ''
   const llmModel = import.meta.env.VITE_LLM_MODEL || ''
@@ -51,12 +54,13 @@ export default function App() {
     return await anonymizeText(text)
   }
 
-  async function extractPdfText(file) {
+  async function extractPdfText(file, onProgress) {
     const buf = await file.arrayBuffer()
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise
-    let text = `\n----- ${file.name} -----\n`
+    let text = `----- ${file.name} -----\n`
 
     for (let i = 1; i <= pdf.numPages; i++) {
+      if (typeof onProgress === 'function') onProgress({ file: file.name, page: i, total: pdf.numPages })
       const page = await pdf.getPage(i)
       // Try extracting selectable text first
       const content = await page.getTextContent()
@@ -203,9 +207,16 @@ export default function App() {
     const key = (f) => `${f.name}-${f.size}-${f.lastModified}`
 
     if (picked.length > 0) {
+      setUiError('')
+      setIsExtracting(true)
+      setExtractStatus('')
       try {
-        // Extract from all PDFs, concatenate
-        const texts = await Promise.all(picked.map(extractPdfText))
+        // Extract from PDFs sequentially so we can report progress
+        const texts = []
+        for (const p of picked) {
+          const t = await extractPdfText(p, ({ file, page, total }) => setExtractStatus(`${file}: page ${page}/${total}`))
+          texts.push(t)
+        }
         const combined = texts.join('\n').trim()
         if (combined) {
           try {
@@ -219,6 +230,10 @@ export default function App() {
       } catch (err) {
         console.error(err)
         setUiError('Failed to read one or more PDFs.')
+      }
+      finally {
+        setIsExtracting(false)
+        setExtractStatus('')
       }
     }
 
@@ -333,6 +348,12 @@ export default function App() {
 
             {uiError && (
               <div style={{ color: 'crimson', fontSize: 12, marginTop: 6 }}>{uiError}</div>
+            )}
+
+            {isExtracting && (
+              <div style={{ color: '#444', fontSize: 13, marginTop: 8 }}>
+                ⏳ Extracting text from PDFs — {extractStatus || 'starting...'}
+              </div>
             )}
 
             {/* Masked context (editable) */}
