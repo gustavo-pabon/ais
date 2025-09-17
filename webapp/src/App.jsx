@@ -54,12 +54,65 @@ export default function App() {
   async function extractPdfText(file) {
     const buf = await file.arrayBuffer()
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise
-    let text = `----- ${file.name} -----\n`
+    let text = `\n----- ${file.name} -----\n`
+
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i)
+      // Try extracting selectable text first
       const content = await page.getTextContent()
-      const strings = content.items.map((it) => (it && typeof it === 'object' && 'str' in it ? it.str : '')).filter(Boolean)
-      text += strings.join(' ') + '\n'
+      let pageText = content.items
+        .map((it) => (it && typeof it === 'object' && 'str' in it ? it.str : ''))
+        .filter(Boolean)
+        .join(' ')
+        .trim()
+
+      // If the page has very little or no selectable text, try OCR
+      if (!pageText || pageText.length < 50) {
+        try {
+          // Render page to canvas at a decent scale for OCR
+          const viewport = page.getViewport({ scale: 2 })
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.ceil(viewport.width)
+          canvas.height = Math.ceil(viewport.height)
+          const ctx = canvas.getContext('2d')
+          await page.render({ canvasContext: ctx, viewport }).promise
+
+          // Prefer dynamic import of tesseract.js (if installed) for worker-based OCR
+          let ocrText = ''
+          try {
+            const t = await import('tesseract.js')
+            const { createWorker } = t
+            const worker = createWorker()
+            await worker.load()
+            await worker.loadLanguage('eng')
+            await worker.initialize('eng')
+            const { data: { text: ttext } } = await worker.recognize(canvas)
+            await worker.terminate()
+            ocrText = (ttext || '').trim()
+          } catch (e) {
+            // If dynamic import failed, try using window.Tesseract if present
+            if (typeof window !== 'undefined' && window.Tesseract && typeof window.Tesseract.recognize === 'function') {
+              try {
+                const { data: { text: ttext } } = await window.Tesseract.recognize(canvas, 'eng')
+                ocrText = (ttext || '').trim()
+              } catch (err) {
+                console.warn('window.Tesseract OCR failed for page', i, err)
+              }
+            } else {
+              console.warn('tesseract.js not available; skipping OCR for this page', e)
+            }
+          }
+
+          if (ocrText) {
+            // Prefer OCR text when selectable text is absent or extremely short
+            pageText = pageText ? pageText + '\n' + ocrText : ocrText
+          }
+        } catch (ocrErr) {
+          console.error('OCR error for page', i, ocrErr)
+        }
+      }
+
+      text += pageText + '\n'
     }
     return text.trim() + '\n'
   }

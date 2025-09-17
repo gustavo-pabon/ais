@@ -11,7 +11,8 @@
     "react": "*",
     "react-dom": "*",
     "@vitejs/plugin-react": "*",
-    "pdfjs-dist": "*"
+    "pdfjs-dist": "*",
+    "tesseract.js": "*"
   },
   "scripts": {
     "build": "vite build"
