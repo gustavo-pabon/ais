@@ -181,26 +181,29 @@ export default function App() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+            {/* Attach button row - placed below the input/send row */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
               {/* Hidden native file input (PDFs only). Not posted to server. */}
               <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={onFilesSelected}
-              style={{ display: 'none' }}
-              accept="application/pdf,.pdf"
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={onFilesSelected}
+                style={{ display: 'none' }}
+                accept="application/pdf,.pdf"
               />
 
               <button
-              type="button"
-              className="button"
-              onClick={() => fileInputRef.current?.click()}
-              title="Attach PDF files"
+                type="button"
+                className="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach PDF files"
               >
-              Attach PDF
+                Attach PDF
               </button>
+            </div>
 
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
               {isLoading ? (
               <button type="button" className="button" onClick={stop}>
                 Stop
