@@ -73,10 +73,6 @@ export default function App() {
     }
     // Deduplicate by name+size+lastModified
     const key = (f) => `${f.name}-${f.size}-${f.lastModified}`
-    const merged = [...files, ...picked].reduce((acc, f) => {
-      if (!acc.some((g) => key(g) === key(f))) acc.push(f)
-      return acc
-    }, [])
 
     if (picked.length > 0) {
       try {
