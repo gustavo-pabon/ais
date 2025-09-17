@@ -89,15 +89,47 @@ export default function App() {
               const maybeWorker = createWorker()
               const worker = maybeWorker instanceof Promise ? await maybeWorker : maybeWorker
 
-              // Some package versions expose worker lifecycle methods; guard their calls
-              if (typeof worker.load === 'function') await worker.load()
-              if (typeof worker.loadLanguage === 'function') await worker.loadLanguage('eng')
-              if (typeof worker.initialize === 'function') await worker.initialize('eng')
-
+              // Newer tesseract.js workers are pre-loaded; try recognize() directly first
+              let didRecognize = false
               if (typeof worker.recognize === 'function') {
-                const res = await worker.recognize(canvas)
-                const ttext = res?.data?.text ?? res?.text ?? ''
-                ocrText = (ttext || '').trim()
+                try {
+                  const res = await worker.recognize(canvas)
+                  const ttext = res?.data?.text ?? res?.text ?? ''
+                  ocrText = (ttext || '').trim()
+                  didRecognize = true
+                } catch (recErr) {
+                  // If recognition fails because the worker isn't initialized, fall back to legacy init
+                  if (typeof worker.load === 'function') {
+                    try {
+                      await worker.load()
+                      if (typeof worker.loadLanguage === 'function') await worker.loadLanguage('eng')
+                      if (typeof worker.initialize === 'function') await worker.initialize('eng')
+                      const res2 = await worker.recognize(canvas)
+                      const ttext2 = res2?.data?.text ?? res2?.text ?? ''
+                      ocrText = (ttext2 || '').trim()
+                      didRecognize = true
+                    } catch (initErr) {
+                      console.warn('legacy worker init/recognize failed', initErr)
+                    }
+                  } else {
+                    console.warn('worker.recognize failed and no legacy init present', recErr)
+                  }
+                }
+              } else if (typeof worker.load === 'function') {
+                // Worker doesn't expose recognize directly; try legacy init then recognize
+                try {
+                  await worker.load()
+                  if (typeof worker.loadLanguage === 'function') await worker.loadLanguage('eng')
+                  if (typeof worker.initialize === 'function') await worker.initialize('eng')
+                  if (typeof worker.recognize === 'function') {
+                    const res = await worker.recognize(canvas)
+                    const ttext = res?.data?.text ?? res?.text ?? ''
+                    ocrText = (ttext || '').trim()
+                    didRecognize = true
+                  }
+                } catch (initErr) {
+                  console.warn('legacy worker init/recognize failed', initErr)
+                }
               }
 
               if (typeof worker.terminate === 'function') await worker.terminate()
