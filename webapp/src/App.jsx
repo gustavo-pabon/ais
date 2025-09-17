@@ -152,13 +152,14 @@ export default function App() {
         <div className="composer-wrap">
           <form
             className="composer"
+            style={{ display: 'flex', flexDirection: 'column' }}
             onSubmit={async (e) => {
               e.preventDefault()
               if (!canSend) return
               await handleSubmit(e)
             }}
-            >
-            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%' }}>
+          >
+            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%' }}> 
               <input
               className="input"
               style={{ flex: 1 }}
