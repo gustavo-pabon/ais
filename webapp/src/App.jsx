@@ -179,7 +179,7 @@ export default function App() {
             </div>
             
             {/* Attach button row - placed below the input/send row */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, width: '100%' }}>
               {/* Hidden native file input (PDFs only). Not posted to server. */}
               <input
                 ref={fileInputRef}
