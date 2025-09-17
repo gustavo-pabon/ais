@@ -1,5 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
+import * as pdfjsLib from 'pdfjs-dist'
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+
+// Configure PDF.js worker for Vite
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 
 export default function App() {
   const api = import.meta.env.VITE_CHAT_API || '/api/chat'
@@ -19,20 +24,97 @@ export default function App() {
   const listRef = useRef(null)
   const fileInputRef = useRef(null)
   const [files, setFiles] = useState([]) // File[]
+  const [maskedContext, setMaskedContext] = useState('') // user-editable masked text
+  const [uiError, setUiError] = useState('')
+  const [instructions, setInstructions] = useState('') // extra LLM instructions
+
+  const llmProvider = import.meta.env.VITE_LLM_PROVIDER || ''
+  const llmModel = import.meta.env.VITE_LLM_MODEL || ''
+  const llmApiUrl = import.meta.env.VITE_LLM_API_URL || ''
 
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  function onFilesSelected(e) {
-    const picked = Array.from(e.target.files || [])
-    // Deduplicate by name+size+lastModified (basic)
+  function formatBytes(bytes) {
+    if (!bytes && bytes !== 0) return ''
+    const units = ['B', 'KB', 'MB', 'GB']
+    let i = 0
+    let v = bytes
+    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++ }
+    return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`
+  }
+
+  function maskPII(text) {
+    if (!text) return ''
+    let out = text
+
+    // Emails
+    out = out.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL]')
+    // US phone (very permissive)
+    out = out.replace(/(\+?\d[\d\-\s().]{7,}\d)/g, '[PHONE]')
+    // SSN
+    out = out.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN]')
+    // DOB tags like "DOB: 01/02/2000" or "Date of Birth - 1990-07-14"
+    out = out.replace(/\b(?:DOB|Date of Birth)[:\s-]*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b/gi, '[DOB]')
+    out = out.replace(/\b(?:DOB|Date of Birth)[:\s-]*\d{4}[\/-]\d{1,2}[\/-]\d{1,2}\b/gi, '[DOB]')
+    // A-Number (USCIS)
+    out = out.replace(/\bA[-\s]?\d{7,9}\b/gi, '[A_NUMBER]')
+    // Addresses (simple street pattern)
+    out = out.replace(/\b\d{1,5}\s+[A-Za-z0-9.'\-]+(?:\s+[A-Za-z0-9.'\-]+)*\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Ln|Lane|Dr|Drive|Ct|Court|Way|Pl|Place|Terrace|Ter|Pkwy|Parkway)\b\.?/gi, '[ADDRESS]')
+    // Credit cards (common lengths)
+    out = out.replace(/\b(?:\d[ -]*?){13,19}\b/g, '[CARD]')
+    // Passport (very rough; alnum 6-9 with possible prefix)
+    out = out.replace(/\b(?:Passport\s*#?\s*)?[A-Z0-9]{6,9}\b/gi, (m) => (/\d{3}-\d{2}-\d{4}/.test(m) ? m : '[ID]'))
+
+    return out
+  }
+
+  async function extractPdfText(file) {
+    const buf = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise
+    let text = `----- ${file.name} -----\n`
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+      const strings = content.items.map((it) => (it && typeof it === 'object' && 'str' in it ? it.str : '')).filter(Boolean)
+      text += strings.join(' ') + '\n'
+    }
+    return text.trim() + '\n'
+  }
+
+  async function onFilesSelected(e) {
+    setUiError('')
+    const pickedAll = Array.from(e.target.files || [])
+    const picked = pickedAll.filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name))
+    if (pickedAll.length > picked.length) {
+      setUiError('Only PDF files are allowed.')
+    }
+    // Deduplicate by name+size+lastModified
     const key = (f) => `${f.name}-${f.size}-${f.lastModified}`
     const merged = [...files, ...picked].reduce((acc, f) => {
       if (!acc.some((g) => key(g) === key(f))) acc.push(f)
       return acc
     }, [])
     setFiles(merged)
+
+    if (picked.length > 0) {
+      try {
+        // Extract from all PDFs, concatenate
+        const texts = await Promise.all(picked.map(extractPdfText))
+        const combined = texts.join('\n').trim()
+        if (combined) {
+          const masked = maskPII(combined)
+          setMaskedContext((prev) => (prev ? prev + '\n' + masked : masked))
+        }
+      } catch (err) {
+        console.error(err)
+        setUiError('Failed to read one or more PDFs.')
+      }
+    }
+
+    // Clear the native input so selecting same file again re-triggers
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   function removeFile(i) {
@@ -44,14 +126,7 @@ export default function App() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  function formatBytes(bytes) {
-    if (!bytes && bytes !== 0) return ''
-    const units = ['B', 'KB', 'MB', 'GB']
-    let i = 0
-    let v = bytes
-    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++ }
-    return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`
-  }
+  const canSend = !!(input && input.trim()) || !!(maskedContext && maskedContext.trim())
 
   return (
     <div className="app">
@@ -63,11 +138,12 @@ export default function App() {
             Endpoint: <code>{api}</code>
           </div>
         </header>
+
         <main className="messages" ref={listRef}>
           {messages.length === 0 && (
             <div className="bubble" style={{ margin: '12px auto' }}>
-              👋 Type your question below and optionally attach files.
-              Everything will be anonymized before using any cloud service.
+              👋 Type your question below and optionally attach PDF files.
+              Everything will be anonymized client-side before any request.
             </div>
           )}
 
@@ -89,17 +165,12 @@ export default function App() {
         </main>
 
         <div className="composer-wrap">
-          {/* IMPORTANT: encType so files go as multipart/form-data */}
           <form
             className="composer"
-            encType="multipart/form-data"
             onSubmit={async (e) => {
               e.preventDefault()
-              if (!input.trim() && files.length === 0) return
-              // Let useChat collect the form data (message + files)
+              if (!canSend) return
               await handleSubmit(e)
-              // Clear file inputs after sending
-              clearFiles()
             }}
           >
             <input
@@ -110,35 +181,33 @@ export default function App() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
-                  if (!isLoading) e.currentTarget.form?.requestSubmit()
+                  if (!isLoading && canSend) e.currentTarget.form?.requestSubmit()
                 }
               }}
               name="message"
             />
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {/* Hidden native file input */}
+              {/* Hidden native file input (PDFs only). Not posted to server. */}
               <input
                 ref={fileInputRef}
                 type="file"
-                name="files"
                 multiple
                 onChange={onFilesSelected}
                 style={{ display: 'none' }}
-                // Tweak as needed:
-                accept=".pdf,.txt,.md,.doc,.docx,.csv,.json,.png,.jpg,.jpeg,.gif"
+                accept="application/pdf,.pdf"
               />
 
               <button
                 type="button"
                 className="button"
                 onClick={() => fileInputRef.current?.click()}
-                title="Attach files"
+                title="Attach PDF files"
               >
-                Attach
+                Attach PDF
               </button>
 
-              <button className="button" type="submit" disabled={isLoading || (input != null && !input.trim() && files.length === 0)}>
+              <button className="button" type="submit" disabled={isLoading || !canSend}>
                 {isLoading ? 'Sending…' : 'Send'}
               </button>
 
@@ -158,6 +227,10 @@ export default function App() {
               )}
             </div>
 
+            {uiError && (
+              <div style={{ color: 'crimson', fontSize: 12, marginTop: 6 }}>{uiError}</div>
+            )}
+
             {/* File list preview */}
             {files.length > 0 && (
               <div className="filelist">
@@ -173,9 +246,63 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* Masked context (editable) */}
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                PII-masked context (editable, sent to the LLM)
+              </label>
+              <textarea
+                name="context"
+                value={maskedContext}
+                onChange={(e) => setMaskedContext(e.target.value)}
+                placeholder="Attach PDFs to extract text; PII will be masked here. You can edit before sending."
+                style={{ width: '100%', minHeight: 120, resize: 'vertical' }}
+              />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => setMaskedContext(maskPII(maskedContext))}
+                  title="Re-apply masking on the current text"
+                >
+                  Re-mask
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => setMaskedContext('')}
+                  title="Clear masked context"
+                >
+                  Clear context
+                </button>
+                <span style={{ fontSize: 12, color: '#666' }}>
+                  {maskedContext.length} chars
+                </span>
+              </div>
+            </div>
+
+            {/* Extra instructions to the LLM */}
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                Additional instructions to the LLM (optional)
+              </label>
+              <textarea
+                name="instructions"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="e.g., Summarize the context and answer step-by-step. Focus on immigration eligibility details."
+                style={{ width: '100%', minHeight: 80, resize: 'vertical' }}
+              />
+            </div>
+
+            {/* Optional LLM connection params passed through to the API */}
+            {llmProvider ? <input type="hidden" name="llmProvider" value={llmProvider} /> : null}
+            {llmModel ? <input type="hidden" name="llmModel" value={llmModel} /> : null}
+            {llmApiUrl ? <input type="hidden" name="llmApiUrl" value={llmApiUrl} /> : null}
           </form>
         </div>
       </div>
     </div>
   )
-}
+}</div></div>
