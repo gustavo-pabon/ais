@@ -180,7 +180,7 @@ export default function App() {
             </div>
             
             {/* Attach button row - placed below the input/send row */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8}}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8}}>
               {/* Hidden native file input (PDFs only). Not posted to server. */}
               <input
                 ref={fileInputRef}
@@ -201,7 +201,7 @@ export default function App() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8, flexWrap: 'wrap' }}>
               {isLoading ? (
               <button type="button" className="button" onClick={stop}>
                 Stop
@@ -281,20 +281,6 @@ export default function App() {
                   {maskedContext.length} chars
                 </span>
               </div>
-            </div>
-
-            {/* Extra instructions to the LLM */}
-            <div style={{ marginTop: 12 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                Additional instructions to the LLM (optional)
-              </label>
-              <textarea
-                name="instructions"
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-                placeholder="e.g., Summarize the context and answer step-by-step. Focus on immigration eligibility details."
-                style={{ width: '100%', minHeight: 80, resize: 'vertical' }}
-              />
             </div>
 
             {/* Optional LLM connection params passed through to the API */}
