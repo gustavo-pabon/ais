@@ -46,9 +46,11 @@ export default function App() {
     return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`
   }
 
-  function maskPII(text) {
+  // Run anonymization and return a string. This is async because
+  // `anonymizeText` performs NER lookups and returns a Promise.
+  async function maskPII(text) {
     if (!text) return ''
-    return anonymizeText(text)
+    return await anonymizeText(text)
   }
 
   async function extractPdfText(file) {
@@ -85,8 +87,13 @@ export default function App() {
         const texts = await Promise.all(picked.map(extractPdfText))
         const combined = texts.join('\n').trim()
         if (combined) {
-          const masked = maskPII(combined)
-          setMaskedContext((prev) => (prev ? prev + '\n' + masked : masked))
+          try {
+            const masked = await maskPII(combined)
+            setMaskedContext((prev) => (prev ? prev + '\n' + masked : masked))
+          } catch (err) {
+            console.error(err)
+            setUiError('Failed to anonymize PDF text.')
+          }
         }
       } catch (err) {
         console.error(err)
@@ -244,7 +251,16 @@ export default function App() {
                 <button
                   type="button"
                   className="button"
-                  onClick={() => setMaskedContext(maskPII(maskedContext))}
+                  onClick={async () => {
+                    setUiError('')
+                    try {
+                      const remasked = await maskPII(maskedContext)
+                      setMaskedContext(remasked)
+                    } catch (err) {
+                      console.error(err)
+                      setUiError('Failed to re-mask text.')
+                    }
+                  }}
                   title="Re-apply masking on the current text"
                 >
                   Re-mask
