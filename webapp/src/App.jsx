@@ -160,58 +160,61 @@ export default function App() {
               if (!canSend) return
               await handleSubmit(e)
             }}
-          >
-            <input
+            >
+            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+              <input
               className="input"
+              style={{ flex: 1 }}
               placeholder="Send a message… (Enter to send, Shift+Enter for newline)"
               value={input}
               onChange={handleInputChange}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  if (!isLoading && canSend) e.currentTarget.form?.requestSubmit()
+                e.preventDefault()
+                if (!isLoading && canSend) e.currentTarget.form?.requestSubmit()
                 }
               }}
               name="message"
-            />
+              />
+              <button className="button" type="submit" disabled={isLoading || !canSend}>
+              {isLoading ? 'Sending…' : 'Send'}
+              </button>
+            </div>
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
               {/* Hidden native file input (PDFs only). Not posted to server. */}
               <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={onFilesSelected}
-                style={{ display: 'none' }}
-                accept="application/pdf,.pdf"
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={onFilesSelected}
+              style={{ display: 'none' }}
+              accept="application/pdf,.pdf"
               />
 
               <button
-                type="button"
-                className="button"
-                onClick={() => fileInputRef.current?.click()}
-                title="Attach PDF files"
+              type="button"
+              className="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach PDF files"
               >
-                Attach PDF
-              </button>
-
-              <button className="button" type="submit" disabled={isLoading || !canSend}>
-                {isLoading ? 'Sending…' : 'Send'}
+              Attach PDF
               </button>
 
               {isLoading ? (
-                <button type="button" className="button" onClick={stop}>
-                  Stop
-                </button>
+              <button type="button" className="button" onClick={stop}>
+                Stop
+              </button>
               ) : messages.length > 0 ? (
-                <button type="button" className="button" onClick={reload}>
-                  Regenerate
-                </button>
+              <button type="button" className="button" onClick={reload}>
+                Regenerate
+              </button>
               ) : null}
+
               {messages.length > 0 && !isLoading && (
-                <button type="button" className="button" onClick={() => setMessages([])}>
-                  Clear
-                </button>
+              <button type="button" className="button" onClick={() => setMessages([])}>
+                Clear
+              </button>
               )}
             </div>
 
