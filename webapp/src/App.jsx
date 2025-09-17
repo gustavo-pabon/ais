@@ -48,10 +48,7 @@ export default function App() {
 
   function maskPII(text) {
     if (!text) return ''
-    // Testing only: testing OCR
-    let out = text
-    
-    return out
+    return anonymizeText(text)
   }
 
   async function extractPdfText(file) {
