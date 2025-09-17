@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { anonymizeText } from './anonymize.js'  
 
 // Configure PDF.js worker for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
@@ -47,26 +48,9 @@ export default function App() {
 
   function maskPII(text) {
     if (!text) return ''
+    // Testing only: testing OCR
     let out = text
-
-    // Emails
-    out = out.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL]')
-    // US phone (very permissive)
-    out = out.replace(/(\+?\d[\d\-\s().]{7,}\d)/g, '[PHONE]')
-    // SSN
-    out = out.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN]')
-    // DOB tags like "DOB: 01/02/2000" or "Date of Birth - 1990-07-14"
-    out = out.replace(/\b(?:DOB|Date of Birth)[:\s-]*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b/gi, '[DOB]')
-    out = out.replace(/\b(?:DOB|Date of Birth)[:\s-]*\d{4}[\/-]\d{1,2}[\/-]\d{1,2}\b/gi, '[DOB]')
-    // A-Number (USCIS)
-    out = out.replace(/\bA[-\s]?\d{7,9}\b/gi, '[A_NUMBER]')
-    // Addresses (simple street pattern)
-    out = out.replace(/\b\d{1,5}\s+[A-Za-z0-9.'\-]+(?:\s+[A-Za-z0-9.'\-]+)*\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Ln|Lane|Dr|Drive|Ct|Court|Way|Pl|Place|Terrace|Ter|Pkwy|Parkway)\b\.?/gi, '[ADDRESS]')
-    // Credit cards (common lengths)
-    out = out.replace(/\b(?:\d[ -]*?){13,19}\b/g, '[CARD]')
-    // Passport (very rough; alnum 6-9 with possible prefix)
-    out = out.replace(/\b(?:Passport\s*#?\s*)?[A-Z0-9]{6,9}\b/gi, (m) => (/\d{3}-\d{2}-\d{4}/.test(m) ? m : '[ID]'))
-
+    
     return out
   }
 
