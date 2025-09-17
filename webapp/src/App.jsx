@@ -89,47 +89,65 @@ export default function App() {
               const maybeWorker = createWorker()
               const worker = maybeWorker instanceof Promise ? await maybeWorker : maybeWorker
 
-              // Newer tesseract.js workers are pre-loaded; try recognize() directly first
-              let didRecognize = false
-              if (typeof worker.recognize === 'function') {
-                try {
-                  const res = await worker.recognize(canvas)
-                  const ttext = res?.data?.text ?? res?.text ?? ''
-                  ocrText = (ttext || '').trim()
-                  didRecognize = true
-                } catch (recErr) {
-                  // If recognition fails because the worker isn't initialized, fall back to legacy init
-                  if (typeof worker.load === 'function') {
-                    try {
-                      await worker.load()
-                      if (typeof worker.loadLanguage === 'function') await worker.loadLanguage('eng')
-                      if (typeof worker.initialize === 'function') await worker.initialize('eng')
-                      const res2 = await worker.recognize(canvas)
-                      const ttext2 = res2?.data?.text ?? res2?.text ?? ''
-                      ocrText = (ttext2 || '').trim()
-                      didRecognize = true
-                    } catch (initErr) {
-                      console.warn('legacy worker init/recognize failed', initErr)
+              // helper: quick check whether canvas contains any non-white pixels
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+              let hasInk = false
+              for (let p = 0; p < imageData.data.length; p += 4 * 50) { // sample pixels
+                const r = imageData.data[p]
+                const g = imageData.data[p + 1]
+                const b = imageData.data[p + 2]
+                if (r < 250 || g < 250 || b < 250) { hasInk = true; break }
+              }
+
+              if (!hasInk) {
+                // nothing to OCR on this page
+                console.debug('Page canvas appears blank — skipping OCR for page', i)
+              } else {
+                // Try a few ways to feed the image into tesseract, preferring direct canvas input
+                async function tryRecognizeWith(w, input) {
+                  try {
+                    const res = await w.recognize(input)
+                    return res?.data?.text ?? res?.text ?? ''
+                  } catch (err) {
+                    return ''
+                  }
+                }
+
+                // Try recognize() directly; if it errors or returns empty, try dataURL and blob URL
+                let resultText = ''
+                if (typeof worker.recognize === 'function') {
+                  resultText = (await tryRecognizeWith(worker, canvas)) || (await tryRecognizeWith(worker, canvas.toDataURL()))
+                  if (!resultText) {
+                    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'))
+                    if (blob) {
+                      const url = URL.createObjectURL(blob)
+                      resultText = (await tryRecognizeWith(worker, url)) || ''
+                      URL.revokeObjectURL(url)
                     }
-                  } else {
-                    console.warn('worker.recognize failed and no legacy init present', recErr)
                   }
                 }
-              } else if (typeof worker.load === 'function') {
-                // Worker doesn't expose recognize directly; try legacy init then recognize
-                try {
-                  await worker.load()
-                  if (typeof worker.loadLanguage === 'function') await worker.loadLanguage('eng')
-                  if (typeof worker.initialize === 'function') await worker.initialize('eng')
-                  if (typeof worker.recognize === 'function') {
-                    const res = await worker.recognize(canvas)
-                    const ttext = res?.data?.text ?? res?.text ?? ''
-                    ocrText = (ttext || '').trim()
-                    didRecognize = true
+
+                // If recognition returned nothing, attempt legacy init then retry recognition
+                if (!resultText && typeof worker.load === 'function') {
+                  try {
+                    await worker.load()
+                    if (typeof worker.loadLanguage === 'function') await worker.loadLanguage('eng')
+                    if (typeof worker.initialize === 'function') await worker.initialize('eng')
+                    resultText = (await tryRecognizeWith(worker, canvas)) || (await tryRecognizeWith(worker, canvas.toDataURL()))
+                    if (!resultText) {
+                      const blob2 = await new Promise((res) => canvas.toBlob(res, 'image/png'))
+                      if (blob2) {
+                        const url2 = URL.createObjectURL(blob2)
+                        resultText = (await tryRecognizeWith(worker, url2)) || ''
+                        URL.revokeObjectURL(url2)
+                      }
+                    }
+                  } catch (initErr) {
+                    console.warn('legacy worker init/recognize failed', initErr)
                   }
-                } catch (initErr) {
-                  console.warn('legacy worker init/recognize failed', initErr)
                 }
+
+                ocrText = (resultText || '').trim()
               }
 
               if (typeof worker.terminate === 'function') await worker.terminate()
