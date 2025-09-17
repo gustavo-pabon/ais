@@ -122,9 +122,6 @@ export default function App() {
 
         <header className="header">
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>AIS - Anonymous Immigration Support</h1>
-          <div className="meta" style={{ marginTop: 4 }}>
-            Endpoint: <code>{api}</code>
-          </div>
         </header>
 
         <main className="messages" ref={listRef}>
@@ -180,9 +177,9 @@ export default function App() {
               {isLoading ? 'Sending…' : 'Send'}
               </button>
             </div>
-
+            
             {/* Attach button row - placed below the input/send row */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
               {/* Hidden native file input (PDFs only). Not posted to server. */}
               <input
                 ref={fileInputRef}
@@ -242,7 +239,7 @@ export default function App() {
             )}
 
             {/* Masked context (editable) */}
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 12, width: '100%' }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
                 PII-masked context (editable, sent to the LLM)
               </label>
