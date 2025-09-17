@@ -1,0 +1,14 @@
+const CACHE = 'anon-edge-v7';
+const ASSETS = [
+  './', './index.html', './styles.css', './app.js',
+  './anonymize.js', './ner.js', './ocr.js', './pdf-redact.js',
+  './manifest.webmanifest', './favicon.ico'
+];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request))
+  );
+});

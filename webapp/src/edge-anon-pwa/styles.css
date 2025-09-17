@@ -1,0 +1,19 @@
+
+:root { --bg:#0b0e14; --card:#111621; --fg:#e6e6e6; --muted:#b9c0ca; --accent:#3aa9ff; }
+*{box-sizing:border-box} body{background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0}
+header,footer{padding:16px 20px;background:#0f1420;border-bottom:1px solid #1b2434}
+header h1{margin:0 0 4px 0}
+.badge{display:inline-block;background:#132033;color:#cde7ff;padding:4px 8px;border-radius:999px;font-size:12px}
+main{padding:20px;display:grid;gap:16px}
+.input-panel{display:grid;gap:12px}
+.dropzone{display:flex;align-items:center;justify-content:center;height:72px;border:1px dashed #33507a;border-radius:12px;background:var(--card);color:var(--muted);cursor:pointer}
+.dropzone input{display:none}
+textarea{width:100%;min-height:120px;border-radius:12px;border:1px solid #2a3550;background:var(--card);color:var(--fg);padding:12px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+button{background:#1f7ae0;color:white;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+.preview{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pane{background:var(--card);border:1px solid #2a3550;border-radius:12px;min-height:160px;padding:12px;white-space:pre-wrap}
+.downloads ul{list-style:none;padding-left:0}
+.downloads li{margin:6px 0}
+a.dl{color:#90d1ff}
