@@ -10,7 +10,8 @@
     "@ai-sdk/react": "*",
     "react": "*",
     "react-dom": "*",
-    "@vitejs/plugin-react": "*"
+    "@vitejs/plugin-react": "*",
+    "pdfjs-dist": "*"
   },
   "scripts": {
     "build": "vite build"
