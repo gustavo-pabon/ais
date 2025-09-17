@@ -80,15 +80,40 @@ export default function App() {
           // Prefer dynamic import of tesseract.js (if installed) for worker-based OCR
           let ocrText = ''
           try {
-            const t = await import('tesseract.js')
-            const { createWorker } = t
-            const worker = createWorker()
-            await worker.load()
-            await worker.loadLanguage('eng')
-            await worker.initialize('eng')
-            const { data: { text: ttext } } = await worker.recognize(canvas)
-            await worker.terminate()
-            ocrText = (ttext || '').trim()
+            const mod = await import('tesseract.js')
+
+            // Try to find a createWorker factory on different export shapes
+            const createWorker = mod.createWorker ?? mod.default?.createWorker
+            if (typeof createWorker === 'function') {
+              // createWorker may return a worker or a promise resolving to a worker
+              const maybeWorker = createWorker()
+              const worker = maybeWorker instanceof Promise ? await maybeWorker : maybeWorker
+
+              // Some package versions expose worker lifecycle methods; guard their calls
+              if (typeof worker.load === 'function') await worker.load()
+              if (typeof worker.loadLanguage === 'function') await worker.loadLanguage('eng')
+              if (typeof worker.initialize === 'function') await worker.initialize('eng')
+
+              if (typeof worker.recognize === 'function') {
+                const res = await worker.recognize(canvas)
+                const ttext = res?.data?.text ?? res?.text ?? ''
+                ocrText = (ttext || '').trim()
+              }
+
+              if (typeof worker.terminate === 'function') await worker.terminate()
+
+            } else if (typeof mod.recognize === 'function') {
+              // Some builds expose a top-level recognize() helper
+              const res = await mod.recognize(canvas, 'eng')
+              const ttext = res?.data?.text ?? res?.text ?? ''
+              ocrText = (ttext || '').trim()
+            } else if (mod.default && typeof mod.default.recognize === 'function') {
+              const res = await mod.default.recognize(canvas, 'eng')
+              const ttext = res?.data?.text ?? res?.text ?? ''
+              ocrText = (ttext || '').trim()
+            } else {
+              console.warn('tesseract.js imported but no suitable API found; skipping OCR for this page')
+            }
           } catch (e) {
             // If dynamic import failed, try using window.Tesseract if present
             if (typeof window !== 'undefined' && window.Tesseract && typeof window.Tesseract.recognize === 'function') {
