@@ -21,9 +21,9 @@ async function getNER(preferSpanish){
 
 export async function nerMask(text, { preferSpanish } = {}){
   const ner = await getNER(!!preferSpanish);
-  let out = await ner(text, { aggregation_strategy: 'simple' });
   let masked = text;
   /*
+  let out = await ner(text, { aggregation_strategy: 'simple' });
   // Filter noisy tags
   out = out.filter(e => {
     if (!e || !e.entity_group) return false;
