@@ -41,6 +41,25 @@ export default function App() {
     listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
+  // Global error handlers to surface stack traces and context in the UI for debugging
+  useEffect(() => {
+    function onError(msg, src, line, col, err) {
+      console.error('Global error caught', { msg, src, line, col, err })
+      setUiError(`Error: ${String(err?.message || msg)} (see console for stack)`)
+      return false
+    }
+    function onUnhandledRejection(ev) {
+      console.error('Unhandled rejection', ev.reason)
+      setUiError(`Unhandled rejection: ${String(ev.reason?.message || ev.reason)}`)
+    }
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onUnhandledRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onUnhandledRejection)
+    }
+  }, [])
+
   // Keep a local copy of the input so the Send button reacts immediately
   useEffect(() => { setLocalInput(input || '') }, [input])
 
