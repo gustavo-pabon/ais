@@ -248,10 +248,6 @@ export default function App() {
                 }}>
                 Stop
               </button>
-              ) : messages.length > 0 ? (
-              <button type="button" className="button" onClick={() => { if (typeof reload === 'function') reload() }}>
-                Regenerate
-              </button>
               ) : null}
 
               {messages.length > 0 && !isLoading && !isLocalSending && (
