@@ -14,6 +14,11 @@ const MONTHS = "(January|February|March|April|May|June|July|August|September|Oct
 
 /** Regex policy: conservative + labeled field detectors for migration docs. */
 function regexPass(text){
+  // Ensure we always operate on a string to avoid runtime failures when callers
+  // accidentally pass null/undefined or when upstream NER returns unexpected values.
+  if (text === null || typeof text === 'undefined') text = ''
+  else if (typeof text !== 'string') text = String(text)
+
   const rules = [
     // Shield OMB number
     { re: /\bOMB\s*No\.?\s*\d{4}-\d{4}\b/gi, repl:'<OMB_NO>' },
@@ -72,7 +77,15 @@ function regexPass(text){
 
 export async function anonymizeText(raw, opts={}){
   const stage1 = regexPass(raw);
-  const stage2 = await nerMask(stage1, opts);
-  const finalPass = regexPass(stage2);
-  return finalPass;
+  let stage2
+  try {
+    stage2 = await nerMask(stage1, opts)
+    if (stage2 === null || typeof stage2 === 'undefined') stage2 = ''
+    else if (typeof stage2 !== 'string') stage2 = String(stage2)
+  } catch (err) {
+    console.error('NER masking failed, falling back to regex-only anonymization', err)
+    stage2 = stage1
+  }
+  const finalPass = regexPass(stage2)
+  return finalPass
 }
