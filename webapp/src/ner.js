@@ -4,7 +4,7 @@
 import { pipeline, env } from '@xenova/transformers';
 
 env.allowLocalModels = false;   // don't look for /models/...
-env.localModelPath = null;      // force remote
+env.localModelPath = '';        // force remote (must be string, not null, to avoid e.replace error)
 env.useBrowserCache = true;     // cache in IndexedDB
 
 let cache = { lang: null, ner: null };
