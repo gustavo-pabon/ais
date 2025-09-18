@@ -3,6 +3,7 @@ import { useChat } from '@ai-sdk/react'
 import { anonymizeText } from './anonymize.js'
 import { extractPdfText } from './pdf-extract.js'
 import { DEFAULT_INSTRUCTIONS } from './default-instructions.js'
+import logoUrl from '../img/ais-logo-shield-compass.svg'
 
 export default function App() {
   const api = import.meta.env.VITE_CHAT_API || '/api/chat'
@@ -111,7 +112,9 @@ export default function App() {
       <div className="container">
 
         <header className="header">
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>AIS - Anonymous Immigration Support</h1>
+          <h1 style={{ margin: 0 }}>
+            <img src={logoUrl} alt="AIS - Anonymous Immigration Support" style={{ height: 36 }} />
+          </h1>
         </header>
 
         <main className="messages" ref={listRef}>
