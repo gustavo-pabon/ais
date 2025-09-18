@@ -12,7 +12,8 @@
     "react-dom": "*",
     "@vitejs/plugin-react": "*",
     "pdfjs-dist": "*",
-    "tesseract.js": "*"
+    "tesseract.js": "*",
+    "@xenova/transformers": "*"
   },
   "scripts": {
     "build": "vite build"
