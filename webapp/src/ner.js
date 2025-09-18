@@ -11,10 +11,13 @@ let cache = { lang: null, ner: null };
 
 async function getNER(preferSpanish){
   const lang = preferSpanish ? 'es' : 'en';
+  console.log("Selected language:", lang);
   if (!cache.ner || cache.lang !== lang){
     cache.lang = lang;
     const model = preferSpanish ? 'PlanTL-GOB-ES/roberta-base-bne-ner' : 'Xenova/bert-base-NER';
+    console.log('Loading NER model:', model);
     cache.ner = await pipeline('token-classification', model);
+    console.log('NER model loaded', cache.ner);
   }
   return cache.ner;
 }
