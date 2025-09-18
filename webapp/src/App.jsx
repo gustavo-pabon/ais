@@ -141,7 +141,7 @@ export default function App() {
             onSubmit={async (e) => {
               e.preventDefault()
               if (!canSend) return
-              await handleSubmit(e)
+              if (typeof handleSubmit === 'function') await handleSubmit(e)
             }}
           >
             <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%' }}> 
@@ -150,7 +150,7 @@ export default function App() {
               style={{ flex: 1 }}
               placeholder="Send a message… (Enter to send, Shift+Enter for newline)"
               value={localInput}
-              onChange={(e) => { setLocalInput(e.target.value); handleInputChange(e) }}
+              onChange={(e) => { setLocalInput(e.target.value); if (typeof handleInputChange === 'function') handleInputChange(e) }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
@@ -188,17 +188,17 @@ export default function App() {
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8, width: '100%' }}>
               {isLoading ? (
-              <button type="button" className="button" onClick={stop}>
+              <button type="button" className="button" onClick={() => { if (typeof stop === 'function') stop() }}>
                 Stop
               </button>
               ) : messages.length > 0 ? (
-              <button type="button" className="button" onClick={reload}>
+              <button type="button" className="button" onClick={() => { if (typeof reload === 'function') reload() }}>
                 Regenerate
               </button>
               ) : null}
 
               {messages.length > 0 && !isLoading && (
-              <button type="button" className="button" onClick={() => setMessages([])}>
+              <button type="button" className="button" onClick={() => { if (typeof setMessages === 'function') setMessages([]) }}>
                 Clear
               </button>
               )}
