@@ -7,7 +7,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 export async function extractPdfText(file, onProgress) {
   const buf = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise
-  let text = `----- ${file.name} -----\n`
+  let text = `\n\n----- ${file.name} -----\n\n`
 
   for (let i = 1; i <= pdf.numPages; i++) {
     if (typeof onProgress === 'function') onProgress({ file: file.name, page: i, total: pdf.numPages })

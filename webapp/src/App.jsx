@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { anonymizeText } from './anonymize.js'
 import { extractPdfText } from './pdf-extract.js'
+import { DEFAULT_INSTRUCTIONS } from './default-instructions.js'
 
 export default function App() {
   const api = import.meta.env.VITE_CHAT_API || '/api/chat'
@@ -24,12 +25,14 @@ export default function App() {
   const [uiError, setUiError] = useState('')
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState('')
-  const [instructions, setInstructions] = useState('') // extra LLM instructions
   const [localInput, setLocalInput] = useState(input || '')
 
   const llmProvider = import.meta.env.VITE_LLM_PROVIDER || ''
   const llmModel = import.meta.env.VITE_LLM_MODEL || ''
   const llmApiUrl = import.meta.env.VITE_LLM_API_URL || ''
+
+  // Prepare a system prompt composed of the masked context + optional instructions
+  const systemPrompt = `${maskedContext ? maskedContext + '\n\n' : ''}${DEFAULT_INSTRUCTIONS || ''}`.trim()
 
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
@@ -117,7 +120,7 @@ export default function App() {
             </div>
           )}
 
-          {messages.map((m, i) => (
+          {messages.filter((m) => m.role !== 'system').map((m, i) => (
             <div key={i} className={`message ${m.role === 'user' ? 'user' : 'assistant'}`}>
               <div className="avatar">{m.role === 'user' ? 'U' : 'AI'}</div>
               <div className="bubble">{m.content}</div>
@@ -141,6 +144,14 @@ export default function App() {
             onSubmit={async (e) => {
               e.preventDefault()
               if (!canSend) return
+              // Make sure there's exactly one system message at the start
+              const sp = systemPrompt
+              if (typeof setMessages === 'function') {
+                setMessages((prev = []) => {
+                  const withoutSystem = (prev || []).filter((m) => m.role !== 'system')
+                  return [{ role: 'system', content: sp }, ...withoutSystem]
+                })
+              }
               if (typeof handleSubmit === 'function') await handleSubmit(e)
             }}
           >
@@ -262,9 +273,28 @@ export default function App() {
             {llmProvider ? <input type="hidden" name="llmProvider" value={llmProvider} /> : null}
             {llmModel ? <input type="hidden" name="llmModel" value={llmModel} /> : null}
             {llmApiUrl ? <input type="hidden" name="llmApiUrl" value={llmApiUrl} /> : null}
-          </form>
-        </div>
-      </div>
-    </div>
-  )
-}
+            {/* System prompt (masked context + instructions) sent to the server for system-role injection */}
+            {systemPrompt ? <input type="hidden" name="systemPrompt" value={systemPrompt} /> : null}
+           </form>
+
+          {/* Debug: show raw messages content at the end */}
+          <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 12 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+              Current input (debug)
+            </label>
+            <pre style={{ width: '100%', maxHeight: 40, overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: 12 }}>
+              {String(localInput)}
+            </pre>
+
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginTop: 12, marginBottom: 6 }}>
+              Raw messages (debug)
+            </label>
+            <pre style={{ width: '100%', maxHeight: 240, overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: 12 }}>
+              {JSON.stringify(messages, null, 2)}
+            </pre>
+          </div>
+         </div>
+       </div>
+     </div>
+   )
+ }
