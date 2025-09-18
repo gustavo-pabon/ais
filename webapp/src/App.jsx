@@ -95,7 +95,7 @@ export default function App() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const canSend = !!(input && input.trim()) || !!(maskedContext && maskedContext.trim())
+  const canSend = !!(input && input.trim())
 
   return (
     <div className="app">
