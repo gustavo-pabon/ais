@@ -25,6 +25,7 @@ export default function App() {
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState('')
   const [instructions, setInstructions] = useState('') // extra LLM instructions
+  const [localInput, setLocalInput] = useState(input || '')
 
   const llmProvider = import.meta.env.VITE_LLM_PROVIDER || ''
   const llmModel = import.meta.env.VITE_LLM_MODEL || ''
@@ -33,6 +34,9 @@ export default function App() {
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
+
+  // Keep a local copy of the input so the Send button reacts immediately
+  useEffect(() => { setLocalInput(input || '') }, [input])
 
   function formatBytes(bytes) {
     if (!bytes && bytes !== 0) return ''
@@ -95,7 +99,7 @@ export default function App() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const canSend = !!(input && input.trim())
+  const canSend = !!(localInput && localInput.trim())
 
   return (
     <div className="app">
@@ -145,8 +149,8 @@ export default function App() {
               className="input"
               style={{ flex: 1 }}
               placeholder="Send a message… (Enter to send, Shift+Enter for newline)"
-              value={input}
-              onChange={handleInputChange}
+              value={localInput}
+              onChange={(e) => { setLocalInput(e.target.value); handleInputChange(e) }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
