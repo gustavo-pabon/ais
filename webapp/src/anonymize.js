@@ -24,7 +24,10 @@ function regexPass(text){
     try {
       const s = (str === null || typeof str === 'undefined') ? '' : String(str)
       if (typeof target === 'undefined' || target === null) return s
-      return s.replace(target, replacement)
+      // Only call replace if target is string or regex or can be coerced to string
+      if (typeof target === 'string' || target instanceof RegExp) return s.replace(target, replacement)
+      // If target looks like an index or object, avoid calling replace and return original
+      return s
     } catch (err) {
       // If replace fails for any reason, return the original string unchanged
       return (str === null || typeof str === 'undefined') ? '' : String(str)
@@ -102,26 +105,40 @@ function regexPass(text){
   ];
 
   let out = text;
-  for (const r of rules){
-    try {
-      if (typeof r.repl === 'function') {
-        out = out.replace(r.re, (...args) => {
-          try {
-            return r.repl(...args)
-          } catch (err) {
-            console.warn('anonymize rule repl error', { rule: r.re, args, err })
-            // Return the original matched substring to avoid accidental data loss
-            return args[0]
-          }
-        })
-      } else {
-        out = out.replace(r.re, r.repl)
+  try {
+    for (const r of rules){
+      try {
+        if (typeof r.repl === 'function') {
+          out = out.replace(r.re, (...args) => {
+            try {
+              // If any replacer argument is null/undefined, avoid calling the replacer
+              if (args.some((a)=> a === null || typeof a === 'undefined')){
+                try { globalThis.__anonymizeLast = { issue: 'replacer-arg-null', rule: String(r.re), args } } catch(e){}
+                return args[0]
+              }
+              return r.repl(...args)
+            } catch (err) {
+              console.warn('anonymize rule repl error', { rule: String(r.re), args, err })
+              try { globalThis.__anonymizeLast = { issue: 'replacer-exception', rule: String(r.re), args, err: String(err && err.message) } } catch(e){}
+              // Return the original matched substring to avoid accidental data loss
+              return args[0]
+            }
+          })
+        } else {
+          out = out.replace(r.re, r.repl)
+        }
+      } catch (err) {
+        console.warn('anonymize rule application failed', { rule: String(r.re), repl: r.repl, err })
       }
-    } catch (err) {
-      console.warn('anonymize rule application failed', { rule: r.re, repl: r.repl, err })
     }
+  } catch (outerErr) {
+    // Catch anything unexpected during the pass and log context so we can debug.
+    console.error('Unexpected error during regexPass', { err: outerErr, sample: String(text).slice(0, 300) })
+    try { globalThis.__anonymizeLastError = { err: String(outerErr && outerErr.message), sample: String(text).slice(0,300) } } catch(e){}
+    // Return original text as a safe fallback
+    return String(text)
   }
-   return out;
+  return out;
  }
 
 export async function anonymizeText(raw, opts={}){
@@ -133,8 +150,10 @@ export async function anonymizeText(raw, opts={}){
     else if (typeof stage2 !== 'string') stage2 = String(stage2)
   } catch (err) {
     console.error('NER masking failed, falling back to regex-only anonymization', err)
+    try { globalThis.__anonymizeLastError = { err: String(err && err.message), stage1: stage1 && stage1.slice ? stage1.slice(0,300) : String(stage1).slice(0,300) } } catch(e){}
     stage2 = stage1
   }
   const finalPass = regexPass(stage2)
+  try { globalThis.__anonymizeLastResult = finalPass && finalPass.slice ? finalPass.slice(0,1000) : String(finalPass).slice(0,1000) } catch(e){}
   return finalPass
-}
+ }
