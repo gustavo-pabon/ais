@@ -20,8 +20,6 @@ async function getNER(preferSpanish){
 }
 
 export async function nerMask(text, { preferSpanish } = {}){
-  let masked = text;
-  /*
   const ner = await getNER(!!preferSpanish);
   let out = await ner(text, { aggregation_strategy: 'simple' });
   // Filter noisy tags
@@ -31,6 +29,8 @@ export async function nerMask(text, { preferSpanish } = {}){
     const len = (e.end - e.start);
     return len >= 3;
   });
+  let masked = text;
+  /*
   const tags = { PER: '<NAME>', LOC: '<LOC>', ORG: '<ORG>', DATE: '<DATE>' };
   const sorted = out.sort((a,b)=> b.start - a.start);
   let masked = text;
