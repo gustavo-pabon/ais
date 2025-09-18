@@ -346,6 +346,7 @@ export default function App() {
            </form>
 
           {/* Debug: show raw messages content at the end */}
+          {/*
           <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 12 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
               Current input (debug)
@@ -361,6 +362,7 @@ export default function App() {
               {JSON.stringify(messages, null, 2)}
             </pre>
           </div>
+          */}
          </div>
        </div>
      </div>
