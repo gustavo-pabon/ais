@@ -32,6 +32,14 @@ jobs:
                const coredemo = require('@actions/core')
                return await coredemo.getIDToken()
            result-encoding: string
+      - name: Generate .env file
+        #run: |
+        #  echo $(pwd)
+        #  echo $(ls -la)
+        run: |
+           echo "VITE_AZURE_OPENAI_KEY=${{ secrets.VITE_AZURE_OPENAI_KEY }}" > ./webapp/.env
+           echo "VITE_LLM_API_URL=${{ secrets.VITE_LLM_API_URL }}" >> ./webapp/.env
+           echo "VITE_LLM_PROVIDER=${{ secrets.VITE_LLM_PROVIDER }}" >> ./webapp/.env 
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -56,6 +64,7 @@ jobs:
         uses: Azure/static-web-apps-deploy@v1
         with:
           action: "close"
+
 
 
 
