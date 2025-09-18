@@ -240,6 +240,27 @@ export default function App() {
               </button>
             </div>
             
+            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8, width: '100%' }}>
+              {isLoading || isLocalSending ? (
+              <button type="button" className="button" onClick={() => {
+                  if (isLocalSending) { localAbortRef.current?.abort(); setIsLocalSending(false); }
+                  else if (typeof stop === 'function') stop()
+                }}>
+                Stop
+              </button>
+              ) : messages.length > 0 ? (
+              <button type="button" className="button" onClick={() => { if (typeof reload === 'function') reload() }}>
+                Regenerate
+              </button>
+              ) : null}
+
+              {messages.length > 0 && !isLoading && !isLocalSending && (
+              <button type="button" className="button" onClick={() => { if (typeof setMessages === 'function') setMessages([]) }}>
+                Clear
+              </button>
+              )}
+            </div>
+
             {/* Attach button row - placed below the input/send row */}
             <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8, width: '100%' }}>
               {/* Hidden native file input (PDFs only). Not posted to server. */}
@@ -260,27 +281,6 @@ export default function App() {
               >
                 Add PDF to the context
               </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8, width: '100%' }}>
-              {isLoading || isLocalSending ? (
-              <button type="button" className="button" onClick={() => {
-                  if (isLocalSending) { localAbortRef.current?.abort(); setIsLocalSending(false); }
-                  else if (typeof stop === 'function') stop()
-                }}>
-                Stop
-              </button>
-              ) : messages.length > 0 ? (
-              <button type="button" className="button" onClick={() => { if (typeof reload === 'function') reload() }}>
-                Regenerate
-              </button>
-              ) : null}
-
-              {messages.length > 0 && !isLoading && !isLocalSending && (
-              <button type="button" className="button" onClick={() => { if (typeof setMessages === 'function') setMessages([]) }}>
-                Clear
-              </button>
-              )}
             </div>
 
             {uiError && (
