@@ -20,6 +20,7 @@ async function getNER(preferSpanish){
 }
 
 export async function nerMask(text, { preferSpanish } = {}){
+  console.log(text)
   const ner = await getNER(!!preferSpanish);
   let out = await ner(text, { aggregation_strategy: 'simple' });
   // Filter noisy tags
