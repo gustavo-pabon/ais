@@ -11,21 +11,16 @@ let cache = { lang: null, ner: null };
 
 async function getNER(preferSpanish){
   const lang = preferSpanish ? 'es' : 'en';
-  console.log("Selected language:", lang);
   if (!cache.ner || cache.lang !== lang){
     cache.lang = lang;
     const model = preferSpanish ? 'PlanTL-GOB-ES/roberta-base-bne-ner' : 'Xenova/bert-base-NER';
-    console.log('Loading NER model:', model);
     cache.ner = await pipeline('token-classification', model);
-    console.log('NER model loaded', cache.ner);
   }
   return cache.ner;
 }
 
 export async function nerMask(text, { preferSpanish } = {}){
   const ner = await getNER(!!preferSpanish);
-  let masked = text;
-  /*
   let out = await ner(text, { aggregation_strategy: 'simple' });
   // Filter noisy tags
   out = out.filter(e => {
@@ -41,6 +36,5 @@ export async function nerMask(text, { preferSpanish } = {}){
     const tag = tags[e.entity_group] || '<ENT>';
     masked = masked.slice(0, e.start) + tag + masked.slice(e.end);
   }
-  */
   return masked;
 }
