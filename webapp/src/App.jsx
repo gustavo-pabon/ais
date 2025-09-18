@@ -113,7 +113,7 @@ export default function App() {
 
         <header className="header">
           <h1 style={{ margin: 0 }}>
-            <img src={logoUrl} alt="AIS - Anonymous Immigration Support" style={{ height: 36 }} />
+            <img src={logoUrl} alt="AIS - Anonymous Immigration Support" style={{ width: "60%" }} />
           </h1>
         </header>
 
