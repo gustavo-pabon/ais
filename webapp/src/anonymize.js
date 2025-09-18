@@ -9,8 +9,8 @@ function keepLast4Placeholder(placeholder){
   };
 }
 
-/** Month names (EN) for date detectors */
-const MONTHS = "(January|February|March|April|May|June|July|August|September|October|November|December)";
+/** Month names (EN) for date detectors (long and short forms) */
+const MONTHS = "(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)";
 
 /** Regex policy: conservative + labeled field detectors for migration docs. */
 function regexPass(text){
@@ -32,7 +32,14 @@ function regexPass(text){
     { re: /\b\d{3}-?\d{2}-?\d{4}\b/g, repl:'<US_SSN>' },
     { re: /\b(?:\d[ -]?){13,19}\b/g, repl: keepLast4Placeholder('<CARD>') },
 
-    // For: NAME (uppercase names). Preserve spacing after the label.
+    // Labeled name fields (conservative) — capture after explicit labels
+    { re: /\b(Name|Full Name|Applicant Name|Client Name|Beneficiary Name|Person Name)\s*[:\-]\s*([^\n]{2,150})/gi,
+      repl:(m, lbl, name)=> m.replace(name, '<NAME>') },
+    { re: /\b(Last|Surname|Family)\s*(?:Name)?\s*[:\-]\s*([^\n]{2,80})/gi,
+      repl:(m, lbl, name)=> m.replace(name, '<NAME_LAST>') },
+    { re: /\b(First|Given)\s*(?:Name)?\s*[:\-]\s*([^\n]{2,80})/gi,
+      repl:(m, lbl, name)=> m.replace(name, '<NAME_FIRST>') },
+    // Older 'For: NAME' uppercase label handling
     { re: /\bFor:(\s+)([A-Z][A-Z\s.'-]{2,}?)(\s{2,})/g,
       repl:(m, s1, name, s2)=>`For:${s1}<NAME>${s2}` },
 
@@ -44,11 +51,13 @@ function regexPass(text){
     { re: /First\s*\(Given\)\s*Name:(\s+)([A-Z][A-Z\s.'-]*?)(?=\s{2,}|$)/g,
       repl:(m, s1, first)=>`First (Given) Name:${s1}<NAME_FIRST>` },
 
-    // Dates
-    { re: new RegExp(`\\bBirth\\s*Date:\\s*(\\d{4}\\s+${MONTHS}\\s+\\d{1,2}|\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})\\b`, 'gi'),
-      repl:(m, date)=>m.replace(date, '<DOB>') },
-    { re: new RegExp(`\\b(Arrival\\/Issued\\s*Date|Admit\\s*Until\\s*Date):\\s*(\\d{4}\\s+${MONTHS}\\s+\\d{1,2}|\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})\\b`, 'gi'),
+    // Dates (labels and common variants). Use multiple date formats and allow short month names.
+    { re: new RegExp(`\\b(Date\\s+of\\s+Birth|Birth\\s*Date|DOB|D\\.?O\\.?B\.?)\\s*[:\-]?\\s*(\\d{4}\\s+${MONTHS}\\s+\\d{1,2}|\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4}|${MONTHS}\\s+\\d{1,2},?\\s+\\d{4})\\b`, 'gi'),
+      repl:(m, lbl, date)=>m.replace(date, '<DOB>') },
+    { re: new RegExp(`\\b(Arrival\\/Issued\\s*Date|Admit\\s*Until\\s*Date|Issued\\s*Date|Issue\\s*Date):\\s*(\\d{4}\\s+${MONTHS}\\s+\\d{1,2}|\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4}|${MONTHS}\\s+\\d{1,2},?\\s+\\d{4})\\b`, 'gi'),
       repl:(m, lbl, date)=>m.replace(date, '<DATE>') },
+    // Generic unlabeled date patterns (conservative replacement of birth-like labels only handled above)
+    { re: new RegExp(`\\b(${MONTHS})\\s+\\d{1,2},?\\s+\\d{4}\\b`, 'gi'), repl: '<DATE>' },
 
     // I-94 numbers (alpha-numeric when labeled; must contain at least one digit)
     { re: /\bAdmission\s*I-94\s*Record\s*Number:\s*((?=[A-Z0-9-]*\d)[A-Z0-9-]{9,15})\b/gi,
@@ -65,6 +74,16 @@ function regexPass(text){
     // Country of Citizenship (stop before "Effective", punctuation, or double space)
     { re: /\bCountry\s+of\s+Citizenship:\s*([A-Z][A-Za-z \-']{1,50}?)(?=\s{2,}|,?\s+Effective\b|[.;]|$)/gi,
       repl:(m,n)=>m.replace(n,'<COUNTRY>') },
+
+    // Address fields: replace labeled addresses conservatively
+    { re: /\b(Address|Residence|Street|Mailing Address|Home Address)\s*[:\-]\s*([^\n]{3,300})/gi, repl:(m, lbl, v)=> m.replace(v, '<ADDRESS>') },
+    // City, State ZIP patterns like "City, ST 12345" — mask ZIP and state
+    { re: /\b([A-Za-z\s\-]{2,80}),\s*([A-Z]{2})\s*(\d{5}(?:-\d{4})?)\b/g, repl:(m, city, st, zip)=> m.replace(zip, '<ZIP>').replace(st, '<STATE>').replace(city, '<CITY>') },
+    // Standalone ZIP codes
+    { re: /\b\d{5}(?:-\d{4})?\b/g, repl:'<ZIP>' },
+
+    // Passport numbers (labeled) — conservative capture when preceded by the word Passport
+    { re: /\bPassport\s*(?:No\.?|Number)?\s*[:\-]?\s*([A-Z0-9\-]{5,20})\b/gi, repl:(m,n)=> m.replace(n,'<PASSPORT>') },
 
     // IPv4
     { re: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g, repl:'<IP>' },
