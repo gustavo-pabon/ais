@@ -26,6 +26,8 @@ export default function App() {
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState('')
   const [localInput, setLocalInput] = useState(input || '')
+  const [isLocalSending, setIsLocalSending] = useState(false)
+  const localAbortRef = useRef(null)
 
   const llmProvider = import.meta.env.VITE_LLM_PROVIDER || ''
   const llmModel = import.meta.env.VITE_LLM_MODEL || ''
@@ -144,14 +146,77 @@ export default function App() {
             onSubmit={async (e) => {
               e.preventDefault()
               if (!canSend) return
-              // Make sure there's exactly one system message at the start
               const sp = systemPrompt
-              if (typeof setMessages === 'function') {
-                setMessages((prev = []) => {
-                  const withoutSystem = (prev || []).filter((m) => m.role !== 'system')
-                  return [{ role: 'system', content: sp }, ...withoutSystem]
-                })
+
+              // Build the exact messages payload we will send: system + previous history (no system) + current user input
+              const prev = Array.isArray(messages) ? messages : []
+              const withoutSystem = prev.filter((m) => m.role !== 'system')
+              const payloadMessages = [{ role: 'system', content: sp }, ...withoutSystem, { role: 'user', content: localInput }]
+
+              // Update client state so the UI shows the payload immediately
+              if (typeof setMessages === 'function') setMessages(payloadMessages)
+
+              // If configured for Azure, send directly from the browser using VITE vars
+              if (llmProvider === 'azure' || import.meta.env.VITE_LLM_PROVIDER === 'azure') {
+                await (async function sendToAzure(payload) {
+                  setIsLocalSending(true)
+                  setUiError('')
+                  const url = llmApiUrl || import.meta.env.VITE_LLM_API_URL
+                  const key = import.meta.env.VITE_AZURE_OPENAI_KEY || import.meta.env.VITE_OPENAI_API_KEY
+                  if (!url || !key) {
+                    setUiError('Azure endpoint or API key missing (set VITE_LLM_API_URL and VITE_AZURE_OPENAI_KEY).')
+                    setIsLocalSending(false)
+                    return
+                  }
+
+                  const controller = new AbortController()
+                  localAbortRef.current = controller
+
+                  try {
+                    const resp = await fetch(url, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': key,
+                      },
+                      signal: controller.signal,
+                      body: JSON.stringify({ messages: payload }),
+                    })
+
+                    if (!resp.ok) {
+                      const errText = await resp.text()
+                      throw new Error(`LLM request failed: ${resp.status} ${errText}`)
+                    }
+
+                    const data = await resp.json()
+                    // Try common Azure response shapes
+                    const assistantText = data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.message ?? data?.output?.[0]?.content ?? ''
+
+                    setMessages((prevMsgs) => {
+                      const base = Array.isArray(prevMsgs) ? prevMsgs : []
+                      return [...base, { role: 'assistant', content: String(assistantText) }]
+                    })
+                    setLocalInput('')
+                    if (typeof handleInputChange === 'function') {
+                      // keep the useChat hook input in sync if it exists
+                      try { handleInputChange({ target: { name: 'message', value: '' } }) } catch {}
+                    }
+                  } catch (err) {
+                    if (err.name === 'AbortError') {
+                      setUiError('Send aborted')
+                    } else {
+                      console.error(err)
+                      setUiError(String(err.message || err))
+                    }
+                  } finally {
+                    setIsLocalSending(false)
+                    localAbortRef.current = null
+                  }
+                })(payloadMessages)
+                return
               }
+
+              // Fallback to server-backed hook if not using direct Azure mode
               if (typeof handleSubmit === 'function') await handleSubmit(e)
             }}
           >
@@ -170,8 +235,8 @@ export default function App() {
               }}
               name="message"
               />
-              <button className="button" type="submit" disabled={isLoading || !canSend}>
-              {isLoading ? 'Sending…' : 'Send'}
+              <button className="button" type="submit" disabled={isLoading || isLocalSending || !canSend}>
+              {isLoading || isLocalSending ? 'Sending…' : 'Send'}
               </button>
             </div>
             
@@ -198,8 +263,11 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8, width: '100%' }}>
-              {isLoading ? (
-              <button type="button" className="button" onClick={() => { if (typeof stop === 'function') stop() }}>
+              {isLoading || isLocalSending ? (
+              <button type="button" className="button" onClick={() => {
+                  if (isLocalSending) { localAbortRef.current?.abort(); setIsLocalSending(false); }
+                  else if (typeof stop === 'function') stop()
+                }}>
                 Stop
               </button>
               ) : messages.length > 0 ? (
@@ -208,7 +276,7 @@ export default function App() {
               </button>
               ) : null}
 
-              {messages.length > 0 && !isLoading && (
+              {messages.length > 0 && !isLoading && !isLocalSending && (
               <button type="button" className="button" onClick={() => { if (typeof setMessages === 'function') setMessages([]) }}>
                 Clear
               </button>
