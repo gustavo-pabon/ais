@@ -12,7 +12,17 @@ env.useBrowserCache = true;     // cache in IndexedDB
 let cache = { lang: null, nerFunc: null, source: null };
 
 async function loadTransformers(preferSpanish){
+  // Only attempt loading the Xenova transformers pipeline when explicitly enabled.
+  // This prevents spurious stack traces and long network/model loads in CI or restricted environments.
+  const enabled = import.meta.env.VITE_ENABLE_XENOVA === 'true'
+  if (!enabled) {
+    // Mark as failed for this language so we don't repeatedly attempt
+    cache = { lang: preferSpanish ? 'es' : 'en', nerFunc: null, source: 'disabled' }
+    return null
+  }
   const lang = preferSpanish ? 'es' : 'en'
+  // If we've previously attempted and failed, don't retry repeatedly
+  if (cache.source === 'failed' && cache.lang === lang) return null
   if (cache.nerFunc && cache.lang === lang && cache.source === 'xenova') return cache.nerFunc
 
   try {
@@ -25,12 +35,21 @@ async function loadTransformers(preferSpanish){
       env.useBrowserCache = true
     }
     const model = preferSpanish ? 'PlanTL-GOB-ES/roberta-base-bne-ner' : 'Xenova/bert-base-NER'
-    const ner = await pipeline('token-classification', model)
+
+    // Enforce a timeout for model loading so the UI doesn't hang and we can fallback
+    const pipelinePromise = pipeline('token-classification', model)
+    const timeoutMs = 15000
+    const ner = await Promise.race([
+      pipelinePromise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('transformers pipeline timed out')), timeoutMs))
+    ])
+
     cache = { lang, nerFunc: ner, source: 'xenova' }
     return ner
   } catch (err) {
-    // Can't load xenova transformers in-browser; fallback will be used
-    console.warn('Transformers.js pipeline failed to load; using heuristic NER fallback', err)
+    // Log a concise message only (avoid printing enormous library stacks in the console)
+    try { console.warn('Transformers.js pipeline failed to load; using heuristic NER fallback —', err && err.message ? err.message : String(err)) } catch(e){}
+    cache = { lang, nerFunc: null, source: 'failed' }
     return null
   }
 }
@@ -42,7 +61,7 @@ function heuristicNER(text){
   // Helper to push entity
   const push = (group, start, end, score=0.85) => entities.push({ entity_group: group, start, end, score })
 
-  // Labeled names: Name:, Full Name:, Applicant Name:, etc.
+  // Labeled names: Name:, Full Name:, Applicant Name:, Client Name:, Beneficiary Name:, Person Name
   const nameLabelRe = /\b(?:Name|Full Name|Applicant Name|Client Name|Beneficiary Name|Person Name)\s*[:\-]\s*([^\n]{2,150})/gi
   for (const m of text.matchAll(nameLabelRe)){
     const full = m[1]
